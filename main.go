@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/md5"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 // URLMapping stores the mapping between short and long URLs
 var URLMapping = make(map[string]string)
 var mutex = &sync.Mutex{}
+var currentDomain = "http://localhost:8080"
 
 // GenerateShortURL is a simple function to generate a short URL
 // This is a placeholder and should be replaced with a more robust solution
@@ -37,7 +39,8 @@ func ShortenHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Short URL: {}, Long URL: {}", shortURL, longURL)
 
-	fmt.Fprintf(w, "Your short URL is: http://yourdomain.com/%s", shortURL)
+	w.Header()["Content-Type"] = []string{"application/json"}
+	fmt.Fprintf(w, "{short: %s/%s}", currentDomain, shortURL)
 }
 
 // RedirectHandler handles requests to redirect from short to long URLs
@@ -56,10 +59,16 @@ func RedirectHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	domain := flag.String("d", "http://localhost:8080", "Domain name")
+	port := flag.String("p", ":8080", "Port number")
+	flag.Parse()
+
+	currentDomain = *domain
+
 	router := mux.NewRouter()
 	router.HandleFunc("/shorten", ShortenHandler).Methods("POST")
 	router.HandleFunc("/{shortURL}", RedirectHandler).Methods("GET")
 
 	fmt.Println("begin to listen on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(*port, router))
 }
